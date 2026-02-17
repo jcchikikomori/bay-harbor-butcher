@@ -2,5 +2,7 @@ diffusers==0.27.2
 transformers==4.36.2
 accelerate==0.27.2
 safetensors==0.4.1
+huggingface_hub==0.20.3
+numpy<2
 Pillow>=9.1.0
 python-dotenv==1.0.1
