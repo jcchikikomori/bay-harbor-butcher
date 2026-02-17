@@ -1,0 +1,8 @@
+torch==2.2.0
+torchvision==0.17.0
+diffusers==0.27.2
+transformers==4.36.2
+accelerate==0.27.2
+safetensors==0.4.1
+xformers==0.0.23.post1
+Pillow>=9.1.0

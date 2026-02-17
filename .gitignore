@@ -1,0 +1,7 @@
+output/
+*.jpg
+*.png
+*.jpeg
+*.bmp
+*.gif
+*.webp
