@@ -3,7 +3,7 @@
 James Doakes we're right after all.
 I just needed a uncensored version of Stable Diffusion.
 
-Generate images using Stable Diffusion with support for custom models, LoRA weights, and various GPU backends.
+Generate images using Stable Diffusion and FLUX models with auto-detection, LoRA weights, and various GPU backends. The app automatically detects which model you're using and applies the appropriate pipeline and settings.
 
 ## Quick Setup
 
@@ -11,8 +11,8 @@ Generate images using Stable Diffusion with support for custom models, LoRA weig
 
 ```bash
 # Create virtual environment (Python 3.11.4)
-pyenv virtualenv 3.11.4 sd-uncen
-pyenv local sd-uncen
+pyenv virtualenv 3.11.4 sd
+pyenv activate sd
 
 # Install dependencies
 pip install -r requirements.txt
@@ -69,11 +69,15 @@ python app.py --init-image path/to/image.jpg --strength 0.7
 python app.py --lora-path ./my_loras --lora-weight-name model.safetensors
 ```
 
-### FLUX with bfloat16
+### FLUX Models (Auto-Detected)
+
+The app auto-detects FLUX models and uses the appropriate pipeline with bfloat16 precision:
 
 ```bash
-python app.py --model "black-forest-labs/FLUX.1-dev" --torch-dtype bfloat16
+python app.py --model "black-forest-labs/FLUX.1-dev" --prompt "a cat with sunglasses"
 ```
+
+No need to specify `--torch-dtype` or `--use-auto-pipeline` — it's automatic!
 
 ## Output
 
@@ -88,6 +92,14 @@ python app.py --model "black-forest-labs/FLUX.1-dev" --torch-dtype bfloat16
 - **CPU** - Fallback with warning
 
 Auto-detected at runtime.
+
+## Supported Models
+
+**Stable Diffusion:** runwayml/stable-diffusion-v1-5, Lykon/DreamShaper, stabilityai/stable-diffusion-2-1, and others
+
+**FLUX:** black-forest-labs/FLUX.1-dev, black-forest-labs/FLUX.1-schnell
+
+Auto-detection works seamlessly — just specify the model ID!
 
 ## Full Documentation
 

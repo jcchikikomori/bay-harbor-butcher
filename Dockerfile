@@ -1,8 +1,6 @@
 FROM pytorch/pytorch:2.2.0-cuda12.1-cudnn8-runtime
 
-RUN pip install --upgrade pip
-
-RUN pip install \
+RUN pip install --upgrade pip \
     diffusers \
     transformers \
     accelerate \

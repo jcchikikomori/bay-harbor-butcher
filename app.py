@@ -1,19 +1,31 @@
+"""Stable Diffusion & FLUX image generation with auto-detection."""
+
 import argparse
 import os
 import warnings
-from typing import Optional
 
 import torch
-from diffusers import AutoPipelineForText2Image, StableDiffusionImg2ImgPipeline, StableDiffusionPipeline
+from diffusers.pipelines.auto_pipeline import AutoPipelineForText2Image
+from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion import (
+    StableDiffusionPipeline,
+)
+from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_img2img import (
+    StableDiffusionImg2ImgPipeline,
+)
 from dotenv import load_dotenv
 from huggingface_hub import login
 from PIL import Image
+
+from pipelines.flux import build_flux_pipeline, is_flux_model
+from pipelines.stable_diffusion import build_stable_diffusion_pipeline
+from utils.device import get_device, get_dtype
 
 DEFAULT_MODEL_ID = "runwayml/stable-diffusion-v1-5"
 OUTPUT_DIR = "output"
 
 
 def get_next_output_path(output_dir: str, prefix: str = "output") -> str:
+    """Generate next auto-incremented output path."""
     os.makedirs(output_dir, exist_ok=True)
     index = 1
     while True:
@@ -24,6 +36,7 @@ def get_next_output_path(output_dir: str, prefix: str = "output") -> str:
 
 
 def ensure_hf_login() -> None:
+    """Ensure HuggingFace authentication for gated models."""
     skip_login = os.getenv("HF_SKIP_LOGIN", "0").lower() == "1"
     if skip_login:
         return
@@ -41,98 +54,57 @@ def ensure_hf_login() -> None:
                 "\nBrowser login failed. Please authenticate manually:\n"
                 "1. Visit: https://huggingface.co/settings/tokens\n"
                 "2. Create or copy an existing API token\n"
-                "3. Add to .env: HF_TOKEN=\"hf_your_token_here\"\n"
+                '3. Add to .env: HF_TOKEN="hf_your_token_here"\n'
                 "4. Restart this script\n"
             )
             print("=" * 60 + "\n")
-            warnings.warn(f"HuggingFace login skipped: {e}")
+            warnings.warn(f"HuggingFace login skipped: {e}", stacklevel=2)
 
 
 def load_init_image(image_path: str, width: int, height: int) -> Image.Image:
+    """Load and resize init image for img2img pipeline."""
     image = Image.open(image_path).convert("RGB")
     return image.resize((width, height))
 
 
-def build_pipeline(
-    model_id: str,
-    use_img2img: bool,
-    device: str,
-    dtype: torch.dtype,
-    use_auto_pipeline: bool = False,
-    lora_path: Optional[str] = None,
-    lora_weight_name: Optional[str] = None,
-    lora_adapter_name: Optional[str] = None,
-):
-    if use_auto_pipeline:
-        pipe = AutoPipelineForText2Image.from_pretrained(
-            model_id,
-            torch_dtype=dtype,
-        )
-    elif use_img2img:
-        pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
-            model_id,
-            torch_dtype=dtype,
-            safety_checker=None,
-        )
-    else:
-        pipe = StableDiffusionPipeline.from_pretrained(
-            model_id,
-            torch_dtype=dtype,
-            safety_checker=None,
-        )
-    
-    pipe = pipe.to(device)
-    
-    if lora_path:
-        # Support both local paths and HuggingFace model IDs
-        is_local = os.path.exists(lora_path)
-        try:
-            pipe.load_lora_weights(
-                lora_path,
-                weight_name=lora_weight_name,
-                adapter_name=lora_adapter_name,
-            )
-            source = "local" if is_local else "HuggingFace"
-            print(f"✓ Loaded LoRA from {source}: {lora_path}")
-        except Exception as e:
-            warnings.warn(f"Failed to load LoRA '{lora_path}': {e}")
-    
-    return pipe
-
-
 def get_env_str(name: str, default: str) -> str:
+    """Get string environment variable with default."""
     value = os.getenv(name)
     return value if value is not None else default
 
 
-def get_env_optional_str(name: str) -> Optional[str]:
+def get_env_optional_str(name: str) -> str | None:
+    """Get optional string environment variable."""
     value = os.getenv(name)
     return value if value else None
 
 
 def get_env_int(name: str, default: int) -> int:
+    """Get integer environment variable with default."""
     value = os.getenv(name)
     if value is None:
         return default
     try:
         return int(value)
     except ValueError:
-        warnings.warn(f"Invalid int for {name}; using default.")
+        warnings.warn(f"Invalid int for {name}; using default.", stacklevel=2)
         return default
 
 
 def get_env_float(name: str, default: float) -> float:
+    """Get float environment variable with default."""
     value = os.getenv(name)
     if value is None:
         return default
     try:
         return float(value)
     except ValueError:
-        warnings.warn(f"Invalid float for {name}; using default.")
+        warnings.warn(f"Invalid float for {name}; using default.", stacklevel=2)
         return default
 
 
 def get_env_bool(name: str, default: bool = False) -> bool:
+    """Get boolean environment variable with default."""
     value = os.getenv(name, "").lower()
     if value in ("true", "1", "yes", "on"):
         return True
@@ -141,24 +113,8 @@ def get_env_bool(name: str, default: bool = False) -> bool:
     return default
 
 
-def parse_torch_dtype(dtype_str: Optional[str]) -> Optional[torch.dtype]:
-    """Parse torch dtype from string (e.g., 'float16', 'bfloat16', 'float32')."""
-    if not dtype_str:
-        return None
-    dtype_map = {
-        "float16": torch.float16,
-        "float32": torch.float32,
-        "bfloat16": torch.bfloat16,
-        "half": torch.float16,
-        "full": torch.float32,
-    }
-    dtype = dtype_map.get(dtype_str.lower())
-    if dtype is None:
-        warnings.warn(f"Unknown dtype '{dtype_str}'; using auto-detection.")
-    return dtype
-
-
 def parse_args() -> argparse.Namespace:
+    """Parse CLI arguments with dotenv defaults."""
     load_dotenv()
     default_prompt = get_env_str("SD_PROMPT", "a photo of an astronaut riding a horse on mars")
     default_negative_prompt = get_env_optional_str("SD_NEGATIVE_PROMPT")
@@ -168,13 +124,12 @@ def parse_args() -> argparse.Namespace:
     default_strength = get_env_float("SD_STRENGTH", 0.6)
     default_guidance_scale = get_env_float("SD_GUIDANCE_SCALE", 7.5)
     default_num_steps = get_env_int("SD_NUM_INFERENCE_STEPS", 50)
-    default_use_auto_pipeline = get_env_bool("SD_USE_AUTO_PIPELINE", False)
     default_lora_path = get_env_optional_str("SD_LORA_PATH")
     default_lora_weight_name = get_env_optional_str("SD_LORA_WEIGHT_NAME")
     default_lora_adapter_name = get_env_optional_str("SD_LORA_ADAPTER_NAME")
     default_torch_dtype = get_env_optional_str("SD_TORCH_DTYPE")
-    
-    parser = argparse.ArgumentParser(description="Stable Diffusion image generation")
+
+    parser = argparse.ArgumentParser(description="Stable Diffusion & FLUX image generation")
     parser.add_argument("--prompt", default=default_prompt)
     parser.add_argument("--negative-prompt", dest="negative_prompt", default=default_negative_prompt)
     parser.add_argument("--init-image", dest="init_image", default=None)
@@ -189,7 +144,6 @@ def parse_args() -> argparse.Namespace:
         default=default_num_steps,
     )
     parser.add_argument("--model", default=default_model)
-    parser.add_argument("--use-auto-pipeline", dest="use_auto_pipeline", action="store_true", default=default_use_auto_pipeline)
     parser.add_argument("--lora-path", dest="lora_path", default=default_lora_path)
     parser.add_argument("--lora-weight-name", dest="lora_weight_name", default=default_lora_weight_name)
     parser.add_argument("--lora-adapter-name", dest="lora_adapter_name", default=default_lora_adapter_name)
@@ -199,44 +153,53 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    """Main image generation pipeline."""
     args = parse_args()
     ensure_hf_login()
-    if torch.cuda.is_available():
-        device = "cuda"
-    elif torch.version.hip is not None:
-        device = "cuda"
-    else:
-        warnings.warn("CUDA/ROCm not available; falling back to CPU.")
-        device = "cpu"
-    
-    # Determine dtype: explicit > env/cli > auto-detect
-    if args.torch_dtype:
-        dtype = parse_torch_dtype(args.torch_dtype)
-        if dtype is None:
-            dtype = torch.float16 if device == "cuda" else torch.float32
-    else:
-        dtype = torch.float16 if device == "cuda" else torch.float32
 
+    # Detect device and determine dtype
+    device = get_device()
+    dtype = get_dtype(args.model, device, args.torch_dtype)
+
+    # Build appropriate pipeline
     use_img2img = args.init_image is not None
-    pipe = build_pipeline(
-        args.model,
-        use_img2img,
-        device,
-        dtype,
-        use_auto_pipeline=args.use_auto_pipeline,
-        lora_path=args.lora_path,
-        lora_weight_name=args.lora_weight_name,
-        lora_adapter_name=args.lora_adapter_name,
-    )
+
+    pipe: AutoPipelineForText2Image | StableDiffusionPipeline | StableDiffusionImg2ImgPipeline
+    if is_flux_model(args.model):
+        if dtype == torch.float16:
+            print("✓ FLUX model detected: using bfloat16 for better quality")
+            dtype = torch.bfloat16
+
+        pipe = build_flux_pipeline(
+            args.model,
+            device,
+            dtype,
+            lora_path=args.lora_path,
+            lora_weight_name=args.lora_weight_name,
+            lora_adapter_name=args.lora_adapter_name,
+        )
+    else:
+        pipe = build_stable_diffusion_pipeline(
+            args.model,
+            device,
+            dtype,
+            use_img2img=use_img2img,
+            lora_path=args.lora_path,
+            lora_weight_name=args.lora_weight_name,
+            lora_adapter_name=args.lora_adapter_name,
+        )
+
     pipe.enable_attention_slicing()
 
-    generator: Optional[torch.Generator] = None
+    # Prepare generator for seeding
+    generator: torch.Generator | None = None
     if args.seed is not None:
         generator = torch.Generator(device=device).manual_seed(args.seed)
 
+    # Generate image
     if use_img2img:
         init_image = load_init_image(args.init_image, args.width, args.height)
-        image = pipe(
+        image = pipe(  # type: ignore
             args.prompt,
             image=init_image,
             strength=args.strength,
@@ -244,9 +207,9 @@ def main() -> None:
             num_inference_steps=args.num_inference_steps,
             negative_prompt=args.negative_prompt,
             generator=generator,
-        ).images[0]
+        ).images[0]  # type: ignore
     else:
-        image = pipe(
+        image = pipe(  # type: ignore
             args.prompt,
             height=args.height,
             width=args.width,
@@ -254,10 +217,16 @@ def main() -> None:
             num_inference_steps=args.num_inference_steps,
             negative_prompt=args.negative_prompt,
             generator=generator,
-        ).images[0]
+        ).images[0]  # type: ignore
 
+    # Save output
     output_path = get_next_output_path(OUTPUT_DIR)
-    image.save(output_path)
+    image.save(output_path)  # type: ignore
+    print(f"✓ Image saved: {output_path}")
+
+
+if __name__ == "__main__":
+    main()
 
 
 if __name__ == "__main__":

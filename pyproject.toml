@@ -1,0 +1,86 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sd-uncen"
+version = "0.1.0"
+description = "Stable Diffusion & FLUX image generation with auto-detection"
+requires-python = ">=3.11"
+dependencies = [
+    "torch>=2.3.1",
+    "diffusers>=0.29.0,<1.0",
+    "transformers>=4.40.0,<5.0",
+    "accelerate>=0.30.0",
+    "peft>=0.4.0",
+    "huggingface_hub>=0.23.2",
+    "Pillow>=9.1.0",
+    "python-dotenv==1.0.1",
+    "safetensors==0.4.1",
+    "numpy<2",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+fix = true
+unsafe-fixes = false
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "C4",   # flake8-comprehensions
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "RSE",  # flake8-raise
+    "RUF",  # ruff-specific
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "E203",  # whitespace before :
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["utils", "pipelines"]
+
+[tool.ruff.format]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "--cov=. --cov-report=html --cov-report=term-missing --cov-branch --tb=short -v"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["app", "utils", "pipelines"]
+omit = [
+    "*/tests/*",
+    "setup.py",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+precision = 2
+skip_empty = true
+
+[tool.coverage.html]
+directory = "htmlcov"

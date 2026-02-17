@@ -1,0 +1,49 @@
+Note: Environment variable`HF_TOKEN` is set and is the current active token independently from the token you've just configured.
+✓ Detected FLUX model: black-forest-labs/FLUX.1-dev
+Loading pipeline components...:   0%|          | 0/7 [00:00<?, ?it/s]Loading pipeline components...:  29%|██▊       | 2/7 [00:00<00:00, 92.60it/s]
+Traceback (most recent call last):
+  File "/home/johncyrillcorsanes/Projects/GENAI/sd-uncen/app.py", line 229, in <module>
+    main()
+  File "/home/johncyrillcorsanes/Projects/GENAI/sd-uncen/app.py", line 173, in main
+    pipe = build_flux_pipeline(
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/johncyrillcorsanes/Projects/GENAI/sd-uncen/pipelines/flux.py", line 39, in build_flux_pipeline
+    pipe = AutoPipelineForText2Image.from_pretrained(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/johncyrillcorsanes/.pyenv/versions/sd/lib/python3.11/site-packages/huggingface_hub/utils/_validators.py", line 114, in _inner_fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/johncyrillcorsanes/.pyenv/versions/sd/lib/python3.11/site-packages/diffusers/pipelines/auto_pipeline.py", line 485, in from_pretrained
+    return text_2_image_cls.from_pretrained(pretrained_model_or_path, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/johncyrillcorsanes/.pyenv/versions/sd/lib/python3.11/site-packages/huggingface_hub/utils/_validators.py", line 114, in _inner_fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/johncyrillcorsanes/.pyenv/versions/sd/lib/python3.11/site-packages/diffusers/pipelines/pipeline_utils.py", line 1021, in from_pretrained
+    loaded_sub_model = load_sub_model(
+                       ^^^^^^^^^^^^^^^
+  File "/home/johncyrillcorsanes/.pyenv/versions/sd/lib/python3.11/site-packages/diffusers/pipelines/pipeline_loading_utils.py", line 876, in load_sub_model
+    loaded_sub_model = load_method(os.path.join(cached_folder, name), **loading_kwargs)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/johncyrillcorsanes/.pyenv/versions/sd/lib/python3.11/site-packages/huggingface_hub/utils/_validators.py", line 114, in _inner_fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/johncyrillcorsanes/.pyenv/versions/sd/lib/python3.11/site-packages/diffusers/models/modeling_utils.py", line 1260, in from_pretrained
+    model = cls.from_config(config, **unused_kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/johncyrillcorsanes/.pyenv/versions/sd/lib/python3.11/site-packages/diffusers/configuration_utils.py", line 265, in from_config
+    model = cls(**init_dict)
+            ^^^^^^^^^^^^^^^^
+  File "/home/johncyrillcorsanes/.pyenv/versions/sd/lib/python3.11/site-packages/diffusers/configuration_utils.py", line 699, in inner_init
+    init(self, *args, **init_kwargs)
+  File "/home/johncyrillcorsanes/.pyenv/versions/sd/lib/python3.11/site-packages/diffusers/models/transformers/transformer_flux.py", line 611, in __init__
+    [
+  File "/home/johncyrillcorsanes/.pyenv/versions/sd/lib/python3.11/site-packages/diffusers/models/transformers/transformer_flux.py", line 612, in <listcomp>
+    FluxTransformerBlock(
+  File "/home/johncyrillcorsanes/.pyenv/versions/sd/lib/python3.11/site-packages/diffusers/models/transformers/transformer_flux.py", line 419, in __init__
+    self.attn = FluxAttention(
+                ^^^^^^^^^^^^^^
+  File "/home/johncyrillcorsanes/.pyenv/versions/sd/lib/python3.11/site-packages/diffusers/models/transformers/transformer_flux.py", line 313, in __init__
+    self.norm_q = torch.nn.RMSNorm(dim_head, eps=eps, elementwise_affine=elementwise_affine)
+                  ^^^^^^^^^^^^^^^^
+AttributeError: module 'torch.nn' has no attribute 'RMSNorm'

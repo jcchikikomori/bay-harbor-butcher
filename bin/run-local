@@ -1,5 +1,22 @@
-# !/bin/bash
-pyenv virtualenv 3.12.0 sd-uncen
-pyenv local sd-uncen
+#!/bin/bash
+set -e
+
+echo "Setting up Stable Diffusion Uncensored..."
+
+# Create virtualenv if it doesn't exist
+if ! pyenv versions | grep -q "^\s*sd"; then
+    echo "Creating virtualenv sd..."
+    pyenv virtualenv 3.11.4 sd
+fi
+
+# Activate virtualenv
+eval "$(pyenv init -)"
+pyenv activate sd
+
+# Install dependencies
+echo "Installing dependencies..."
 pip install -r requirements.txt
-python app.py -h
+
+echo "✓ Setup complete!"
+echo ""
+python app.py --help

@@ -3,6 +3,25 @@ description: This file provides instructions for setting up and running the Stab
 applyTo: "**"
 ---
 
+# Architectural Overview
+
+The project aims to generate images using Stable Diffusion and FLUX models with support for LoRA weights. It auto-detects the best pipeline and precision based on the specified model, ensuring optimal performance and quality. The app is designed to be user-friendly, with environment variable configuration and command-line overrides for flexibility. It supports multiple device types (CUDA, ROCm, CPU) and provides clear output management to prevent overwriting generated images.
+
+## Expected Structure
+
+- app.py
+- pipelines/
+  - stable_diffusion.py
+  - flux.py
+- output/
+  - output_1.png
+  - ...
+- utils/
+  - device.py
+  - lora.py
+- .env.example
+- README.md
+
 # Project Instructions
 
 ## Setup
@@ -10,7 +29,8 @@ applyTo: "**"
 ### Python Version
 
 - `.python-version` file ensures `pyenv` uses Python 3.11.4
-- Create a virtual environment: `python -m venv venv` or `pyenv virtualenv 3.11.4 sd-uncen`
+- Create a virtual environment: `python -m venv venv` or `pyenv virtualenv 3.11.4 sd`
+- Activate venv using pyenv: `pyenv activate sd` or `source venv/bin/activate`
 
 ### Dependencies
 
@@ -72,8 +92,14 @@ Copy `.env.example` to `.env` and customize:
 ### Model & Pipeline
 
 - `SD_MODEL` - HuggingFace model ID (default: `runwayml/stable-diffusion-v1-5`)
-- `SD_USE_AUTO_PIPELINE` - Use `AutoPipelineForText2Image` instead of standard pipeline (true/false)
-- `SD_TORCH_DTYPE` - Model precision: `float16` (GPU default), `float32` (CPU default), or `bfloat16` (recommended for FLUX)
+  - **Stable Diffusion models**: runwayml/stable-diffusion-v1-5, Lykon/DreamShaper, stabilityai/stable-diffusion-2-1
+  - **FLUX models**: black-forest-labs/FLUX.1-dev, black-forest-labs/FLUX.1-schnell
+  - **Auto-Detection**: The app automatically detects FLUX models and uses `AutoPipelineForText2Image`
+- `SD_USE_AUTO_PIPELINE` - _Deprecated_ — Auto-detection handles this automatically
+- `SD_TORCH_DTYPE` - Model precision override (optional)
+  - Stable Diffusion: `float16` (GPU default), `float32` (CPU default)
+  - FLUX: `bfloat16` (auto-selected on CUDA, optional override)
+  - Modern GPUs: `bfloat16` for better quality
 
 ### Image-to-Image
 
@@ -133,11 +159,41 @@ SD_LORA_PATH="ostris/OpenXL-LoRA-library"
 python app.py --lora-path "ostris/OpenXL-LoRA-library"
 ```
 
-## Advanced: AutoPipeline with FLUX
+## Model Auto-Detection
+
+The app automatically detects model type and applies optimal settings:
+
+### FLUX Auto-Detection
+
+When you specify a FLUX model, the app:
+
+1. Detects "flux" or "flux.1" in the model name
+2. Uses `AutoPipelineForText2Image` instead of standard pipeline
+3. Auto-selects `bfloat16` precision on CUDA (best quality)
+4. Disables safety_checker (FLUX doesn't support it)
+
+```bash
+# Automatic — no extra flags needed!
+python app.py --model "black-forest-labs/FLUX.1-dev" --prompt "a sunlit forest"
+```
+
+### Stable Diffusion Auto-Detection
+
+For Stable Diffusion models:
+
+1. Uses standard `StableDiffusionPipeline` or `Img2ImgPipeline`
+2. Uses `float16` precision (GPU) or `float32` (CPU)
+3. Can disable safety_checker if needed
+4. Supports LoRA weights with PEFT
+
+```bash
+python app.py --model "runwayml/stable-diffusion-v1-5" --prompt "a cyberpunk city"
+```
+
+### FLUX with LoRA
 
 ```bash
 # In .env:
-SD_USE_AUTO_PIPELINE=true
 SD_MODEL="black-forest-labs/FLUX.1-dev"
 SD_LORA_PATH="./loras/flux_style"
 
@@ -170,6 +226,21 @@ python -m unittest
 
 **LoRA Not Loading:**
 
+- Check `peft` is installed: `pip list | grep peft` (required for LoRA support)
 - Check path exists: `ls SD_LORA_PATH`
 - Check weight file name is correct
 - Check error message for format compatibility
+- LoRA support via PEFT is required for both Stable Diffusion and FLUX models
+
+**FLUX Model Not Detected:**
+
+- Verify model name contains "flux" or "flux.1" (case-insensitive)
+- Check HuggingFace API availability for model validation
+- FLUX models require at least 8GB VRAM (16GB recommended)
+- bfloat16 precision requires CUDA 11.0+ or newer
+
+**Safety Checker Warnings:**
+
+- Stable Diffusion may warn about disabled safety_checker (suppressed)
+- FLUX models don't support safety_checker (expected behavior)
+- These are informational only and don't affect image generation
