@@ -1,0 +1,6 @@
+diffusers==0.27.2
+transformers==4.36.2
+accelerate==0.27.2
+safetensors==0.4.1
+Pillow>=9.1.0
+python-dotenv==1.0.1

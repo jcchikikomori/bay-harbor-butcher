@@ -1,3 +1,8 @@
+---
+description: This file provides instructions for setting up and running the Stable Diffusion Uncensored project
+applyTo: **/*
+---
+
 # Project Instructions
 
 ## Run Modes
@@ -5,6 +10,11 @@
 - Use `python app.py --help` to view all CLI options.
 - Default prompt and other settings are read from `.env` via `python-dotenv`.
 - CLI args override `.env` values when provided.
+
+## Virtual Environment
+
+- Create with `pyenv virtualenv sd`, or `pyenv virtualenv 3.12.0 sd-uncen`.
+- Activate with `pyenv local sd`.
 
 ## Environment Variables (.env)
 

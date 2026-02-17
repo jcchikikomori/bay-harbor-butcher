@@ -1,0 +1,4 @@
+-r requirements-base.txt
+torch==2.2.0
+torchvision==0.17.0
+xformers==0.0.24
