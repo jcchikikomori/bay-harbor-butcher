@@ -1,6 +1,6 @@
 ---
 description: This file provides instructions for setting up and running the Stable Diffusion Uncensored project
-applyTo: **/*
+applyTo: "**"
 ---
 
 # Project Instructions
